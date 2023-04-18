@@ -2,6 +2,4 @@ tqdm
 python-dotenv
 telethon
 rarfile
-zipfile
-shutil
 sqlalchemy
