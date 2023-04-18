@@ -35,7 +35,9 @@ class LogParser:
                     data=lines[i+2].split(":", 1)
                     x=data[1].strip()
                     passw=x
-                    self.victims.append({"url":domain,"username":user,"password":passw})
+                    if domain.isascii() and user.isascii() and passw.isascii():
+                        self.victims.append({"url":domain,"username":user,"password":passw})
+                        count+=1
                     i+=3
                 else:
                     i+=1

