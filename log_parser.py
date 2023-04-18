@@ -11,6 +11,9 @@ class LogParser:
         self.file_names=["password", "Password", "passwords", "Passwords"]
         self.ext="txt"
 
+    def isascii(self, text):
+        return all(ord(c) < 128 for c in text)
+
     def parse_pwd_file(self,file_path):
         domain=""
         user=""
@@ -35,7 +38,7 @@ class LogParser:
                     data=lines[i+2].split(":", 1)
                     x=data[1].strip()
                     passw=x
-                    if domain.isascii() and user.isascii() and passw.isascii():
+                    if self.isascii(domain) and self.isascii(user) and self.isascii(passw):
                         self.victims.append({"url":domain,"username":user,"password":passw})
                         count+=1
                     i+=3
