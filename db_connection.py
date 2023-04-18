@@ -45,6 +45,8 @@ class DB:
                 # print(victim)
                 session.add(Victim(username=victim['username'],password=victim['password'],url=victim['url']))
                 count+=1
+                if count%500 == 0:
+                    session.commit()
         session.commit()
         session.close()
         return count

@@ -12,7 +12,7 @@ class LogParser:
         self.ext="txt"
 
     def isascii(self, text):
-        return all(ord(c) < 128 for c in text)
+        return all(ord(c) < 128 and ord(c) > 0 for c in text)
 
     def parse_pwd_file(self,file_path):
         domain=""
