@@ -17,12 +17,12 @@ logging.basicConfig(
 
 dotenv.load_dotenv()
 
-bot = TelegramClient('bot', os.environ.get("API_ID"), os.environ.get("API_TOKEN")).start(bot_token=os.environ.get('BOT_TOKEN'))
+bot = TelegramClient('bot', int(os.environ.get("API_ID",'123')), os.environ.get("API_TOKEN",'')).start(bot_token=os.environ.get('BOT_TOKEN', ''))
 db = DB(os.environ.get('DATABASE'))
 # Define a dictionary to store progress data for each user
 progress_data = {}
 
-def extract_archive(file_path, user_id):
+def extract_archive(file_path, user_id) -> str:
     extracted_dir = os.path.splitext(file_path)[0] + '_extracted'
     # Create the directory for the extracted files if it does not exist
     if not os.path.exists(extracted_dir):
@@ -68,11 +68,18 @@ async def download_file(event):
     user_id = event.chat_id
     progress_data[user_id] = {'progress':'starting ...'}
 
-    # Generate a random file name
+    original_file_name = event.document.attributes[0].file_name
+    # print(event.document.id)
+    if db.check_hash(str(event.document.id)):
+        await event.respond(f'File {original_file_name} already in database!')
+        raise events.StopPropagation
+    
+
+    # Generate a random file name  
     random_string = ''.join(random.choices(string.ascii_lowercase + string.digits, k=10))
     file_name = random_string + '.' + event.document.mime_type.split('/')[-1]
     # Define a progress callback function
-    async def progress_callback(current, total):
+    async def progress_callback(current, total) -> None:
         progress_percent = current/total*100
         progress_data[user_id]['progress'] = f'Current progress: {progress_percent:.2f}%'
     # Download the file contents
@@ -80,13 +87,17 @@ async def download_file(event):
     await event.respond('File downloaded successfully as ' + file_name + '! .. Now extracting file ...')
     if file_name.endswith('.zip') or file_name.endswith('.rar'):
         extracted_folder = extract_archive(file_name, user_id)
-    await event.respond('File extracted successfully.')
-    lp=LogParser(extracted_folder)
-    victims=lp.parse_all()
-    inserted = db.insert_victims(victims)
-    await event.respond(f'Inserted {inserted} victims!')
-    shutil.rmtree(extracted_folder)
-    os.remove(file_name)
+        await event.respond('File extracted successfully.')
+        lp=LogParser(extracted_folder)
+        victims=lp.parse_all()
+        inserted = db.insert_victims(victims)
+        await event.respond(f'Inserted {inserted} victims!')
+        db.insert_hash(str(event.document.id), original_file_name)
+        shutil.rmtree(extracted_folder)
+        os.remove(file_name)
+    else:
+        await event.respond('Unknown archive!')
+
 
 
 

