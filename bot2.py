@@ -22,7 +22,7 @@ db = DB(os.environ.get('DATABASE'))
 # Define a dictionary to store progress data for each user
 progress_data = {}
 
-def extract_archive(file_path, user_id) -> str:
+async def extract_archive(file_path, user_id) -> str:
     extracted_dir = os.path.splitext(file_path)[0] + '_extracted'
     # Create the directory for the extracted files if it does not exist
     if not os.path.exists(extracted_dir):
@@ -51,6 +51,9 @@ def extract_archive(file_path, user_id) -> str:
                 progress_str = progress.format_meter(n=progress.n, total=progress.total, elapsed=progress.format_dict['elapsed'])
                 progress_data[user_id]['progress'] = progress_str
     return extracted_dir
+
+async def insert_victims(db, victims, pcs):
+    return db.insert_victims(victims, pcs)
 
 @bot.on(events.NewMessage(pattern='/start'))
 async def start(event):
@@ -96,11 +99,12 @@ async def download_file(event):
     await bot.download_media(event.document, file_name, progress_callback=progress_callback)
     await event.respond('File downloaded successfully as ' + file_name + '! .. Now extracting file ...')
     if file_name.endswith('.zip') or file_name.endswith('.rar'):
-        extracted_folder = extract_archive(file_name, user_id)
+        extracted_folder = await extract_archive(file_name, user_id)
         await event.respond('File extracted successfully.')
         lp=LogParser(extracted_folder)
         victims=lp.parse_all()
-        inserted = db.insert_victims(victims, progress_callback_sync)
+        # inserted = db.insert_victims(victims, progress_callback_sync)
+        inserted = await insert_victims(db, victims, progress_callback_sync)
         await event.respond(f'Inserted {inserted} victims!')
         db.insert_hash(str(event.document.id), original_file_name)
         shutil.rmtree(extracted_folder)
