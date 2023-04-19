@@ -6,7 +6,6 @@ import random
 import string
 import zipfile
 import rarfile
-from tqdm import tqdm
 from log_parser import LogParser
 from db_connection import DB
 import shutil
@@ -31,24 +30,30 @@ async def extract_archive(file_path, user_id) -> str:
     if file_path.endswith('.zip'):
         with zipfile.ZipFile(file_path, 'r') as zip_ref:
             # Use tqdm to show the progress bar
-            progress = tqdm(zip_ref.namelist(), desc='Extracting files', unit=' files')
+            progress = zip_ref.namelist()
+            cnt=0
+            ttl = len(progress)
             for file in progress:
                 try:
                     zip_ref.extract(file, extracted_dir)
                 except Exception as e:
                     print(e, file, extracted_dir)
-                progress_str = progress.format_meter(n=progress.n, total=progress.total, elapsed=progress.format_dict['elapsed'])
+                cnt+=1
+                progress_str = f'Extracting : {cnt/ttl*100}'
                 progress_data[user_id]['progress'] = progress_str
     elif file_path.endswith('.rar'):
         with rarfile.RarFile(file_path, 'r') as rar_ref:
             # Use tqdm to show the progress bar
-            progress = tqdm(rar_ref.namelist(), desc='Extracting files', unit=' files')
+            progress = rar_ref.namelist()
+            cnt=0
+            ttl = len(progress)
             for file in progress:
                 try:
                     rar_ref.extract(file, extracted_dir)
                 except Exception as e:
                     print(e, file, extracted_dir)
-                progress_str = progress.format_meter(n=progress.n, total=progress.total, elapsed=progress.format_dict['elapsed'])
+                cnt+=1
+                progress_str = f'Extracting : {cnt/ttl*100}'
                 progress_data[user_id]['progress'] = progress_str
     return extracted_dir
 
@@ -94,7 +99,7 @@ async def download_file(event):
 
     def progress_callback_sync(current, total) -> None:
         progress_percent = current/total*100
-        progress_data[user_id]['progress'] = f'Current progress: {progress_percent:.2f}%'
+        progress_data[user_id]['progress'] = f'Insert progress: {progress_percent:.2f}%'
     # Download the file contents
     await bot.download_media(event.document, file_name, progress_callback=progress_callback)
     await event.respond('File downloaded successfully as ' + file_name + '! .. Now extracting file ...')
