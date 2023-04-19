@@ -33,7 +33,10 @@ def extract_archive(file_path, user_id) -> str:
             # Use tqdm to show the progress bar
             progress = tqdm(zip_ref.namelist(), desc='Extracting files', unit=' files')
             for file in progress:
-                zip_ref.extract(file, extracted_dir)
+                try:
+                    zip_ref.extract(file, extracted_dir)
+                except Exception as e:
+                    print(e, file, extracted_dir)
                 progress_str = progress.format_meter(n=progress.n, total=progress.total, elapsed=progress.format_dict['elapsed'])
                 progress_data[user_id]['progress'] = progress_str
     elif file_path.endswith('.rar'):
@@ -41,7 +44,10 @@ def extract_archive(file_path, user_id) -> str:
             # Use tqdm to show the progress bar
             progress = tqdm(rar_ref.namelist(), desc='Extracting files', unit=' files')
             for file in progress:
-                rar_ref.extract(file, extracted_dir)
+                try:
+                    rar_ref.extract(file, extracted_dir)
+                except Exception as e:
+                    print(e, file, extracted_dir)
                 progress_str = progress.format_meter(n=progress.n, total=progress.total, elapsed=progress.format_dict['elapsed'])
                 progress_data[user_id]['progress'] = progress_str
     return extracted_dir
@@ -82,6 +88,10 @@ async def download_file(event):
     async def progress_callback(current, total) -> None:
         progress_percent = current/total*100
         progress_data[user_id]['progress'] = f'Current progress: {progress_percent:.2f}%'
+
+    def progress_callback_sync(current, total) -> None:
+        progress_percent = current/total*100
+        progress_data[user_id]['progress'] = f'Current progress: {progress_percent:.2f}%'
     # Download the file contents
     await bot.download_media(event.document, file_name, progress_callback=progress_callback)
     await event.respond('File downloaded successfully as ' + file_name + '! .. Now extracting file ...')
@@ -90,7 +100,7 @@ async def download_file(event):
         await event.respond('File extracted successfully.')
         lp=LogParser(extracted_folder)
         victims=lp.parse_all()
-        inserted = db.insert_victims(victims)
+        inserted = db.insert_victims(victims, progress_callback_sync)
         await event.respond(f'Inserted {inserted} victims!')
         db.insert_hash(str(event.document.id), original_file_name)
         shutil.rmtree(extracted_folder)

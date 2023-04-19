@@ -41,9 +41,10 @@ class DB:
             session.commit()
         session.close()
 
-    def insert_victims(self, victims):
+    def insert_victims(self, victims, progress_callback=None):
         session = self.Session()
         count = 0
+        total=len(victims)
         for victim in victims:
             exists = session.query(Victim).filter_by(username=victim['username'],password=victim['password'],url=victim['url']).first() is not None
             
@@ -51,6 +52,8 @@ class DB:
                 # print(victim)
                 session.add(Victim(username=victim['username'],password=victim['password'],url=victim['url']))
                 count+=1
+                if progress_callback:
+                    progress_callback(count, total)
                 if count%500 == 0:
                     session.commit()
         session.commit()
