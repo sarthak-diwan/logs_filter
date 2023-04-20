@@ -10,6 +10,7 @@ from log_parser import LogParser
 from db_connection import DB
 import shutil
 import concurrent.futures
+import asyncio
 
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -85,9 +86,8 @@ async def extract(event):
     user_id = event.chat_id
     progress_data[user_id] = {'progress':'starting extract ...'}
     file_name = event.raw_text.split()[1]
-    with concurrent.futures.ThreadPoolExecutor() as executor:
-        future = executor.submit(extract_archive, file_name, user_id)
-        extracted_folder = future.result()
+    loop = asyncio.get_event_loop()
+    extracted_folder = await loop.run_in_executor(None, extract_archive, file_name, user_id)
     await event.respond(f'Extracted to {extracted_folder}!')
     raise events.StopPropagation
 
