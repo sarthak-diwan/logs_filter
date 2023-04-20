@@ -9,6 +9,7 @@ import rarfile
 from log_parser import LogParser
 from db_connection import DB
 import shutil
+import concurrent.futures
 import asyncio
 
 logging.basicConfig(
@@ -41,7 +42,7 @@ def extract_archive(file_path, user_id) -> str:
                 except Exception as e:
                     print(e, file, extracted_dir)
                 cnt+=1
-                progress_str = f'Extracting : {cnt/ttl*100:.2f}'
+                progress_str = f'Extracting : {cnt/ttl*100}'
                 progress_data[user_id]['progress'] = progress_str
     elif file_path.endswith('.rar'):
         with rarfile.RarFile(file_path, 'r') as rar_ref:
@@ -55,11 +56,11 @@ def extract_archive(file_path, user_id) -> str:
                 except Exception as e:
                     print(e, file, extracted_dir)
                 cnt+=1
-                progress_str = f'Extracting : {cnt/ttl*100:.2f}'
+                progress_str = f'Extracting : {cnt/ttl*100}'
                 progress_data[user_id]['progress'] = progress_str
     return extracted_dir
 
-def insert_victims(db, victims, pcs):
+async def insert_victims(db, victims, pcs):
     return db.insert_victims(victims, pcs)
 
 @bot.on(events.NewMessage(pattern='/start'))
@@ -101,7 +102,7 @@ async def insert(event):
     def progress_callback_sync(current, total) -> None:
         progress_percent = current/total*100
         progress_data[user_id]['progress'] = f'Insert progress: {progress_percent:.2f}%'
-    inserted = insert_victims(db, victims, progress_callback_sync)
+    inserted = await insert_victims(db, victims, progress_callback_sync)
     await event.respond(f'Inserted {inserted} victims!')
     raise events.StopPropagation
 
@@ -132,13 +133,12 @@ async def download_file(event):
     await bot.download_media(event.document, file_name, progress_callback=progress_callback)
     await event.respond('File downloaded successfully as ' + file_name + '! .. Now extracting file ...')
     if file_name.endswith('.zip') or file_name.endswith('.rar'):
-        loop = asyncio.get_event_loop()
-        extracted_folder = await loop.run_in_executor(None, extract_archive, file_name, user_id)
+        extracted_folder = await extract_archive(file_name, user_id)
         await event.respond('File extracted successfully.')
         lp=LogParser(extracted_folder)
         victims=lp.parse_all()
         # inserted = db.insert_victims(victims, progress_callback_sync)
-        inserted = await loop.run_in_executor(None, insert_victims, db, victims,progress_callback_sync)
+        inserted = await insert_victims(db, victims, progress_callback_sync)
         await event.respond(f'Inserted {inserted} victims!')
         db.insert_hash(str(event.document.id), original_file_name)
         shutil.rmtree(extracted_folder)
