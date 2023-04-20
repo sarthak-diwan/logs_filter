@@ -9,6 +9,8 @@ import rarfile
 from log_parser import LogParser
 from db_connection import DB
 import shutil
+import concurrent.futures
+
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     level=logging.INFO
@@ -21,7 +23,7 @@ db = DB(os.environ.get('DATABASE'))
 # Define a dictionary to store progress data for each user
 progress_data = {}
 
-async def extract_archive(file_path, user_id) -> str:
+def extract_archive(file_path, user_id) -> str:
     extracted_dir = os.path.splitext(file_path)[0] + '_extracted'
     # Create the directory for the extracted files if it does not exist
     if not os.path.exists(extracted_dir):
@@ -83,7 +85,9 @@ async def extract(event):
     user_id = event.chat_id
     progress_data[user_id] = {'progress':'starting extract ...'}
     file_name = event.raw_text.split()[1]
-    extracted_folder = await extract_archive(file_name, user_id)
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        future = executor.submit(extract_archive, file_name, user_id)
+        extracted_folder = future.result()
     await event.respond(f'Extracted to {extracted_folder}!')
     raise events.StopPropagation
 
