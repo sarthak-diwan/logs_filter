@@ -81,6 +81,7 @@ async def show_progress(event):
 @bot.on(events.NewMessage(pattern='/extract'))
 async def extract(event):
     user_id = event.chat_id
+    progress_data[user_id] = {'progress':'starting extract ...'}
     file_name = event.raw_text.split()[1]
     extracted_folder = await extract_archive(file_name, user_id)
     await event.respond(f'Extracted to {extracted_folder}!')
@@ -90,11 +91,15 @@ async def extract(event):
 @bot.on(events.NewMessage(pattern='/insert'))
 async def insert(event):
     user_id = event.chat_id
-    if user_id in progress_data:
-        progress_message = progress_data[user_id]['progress']
-        await event.respond(progress_message)
-    else:
-        await event.respond('No active downloads.')
+    progress_data[user_id] = {'progress':'starting insert ...'}
+    folder_name = event.raw_text.split()[1]
+    lp=LogParser(folder_name)
+    victims=lp.parse_all()
+    def progress_callback_sync(current, total) -> None:
+        progress_percent = current/total*100
+        progress_data[user_id]['progress'] = f'Insert progress: {progress_percent:.2f}%'
+    inserted = await insert_victims(db, victims, progress_callback_sync)
+    await event.respond(f'Inserted {inserted} victims!')
     raise events.StopPropagation
 
 @bot.on(events.NewMessage(func=lambda e: e.document))
