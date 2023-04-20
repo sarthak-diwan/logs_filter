@@ -81,7 +81,7 @@ async def show_progress(event):
 @bot.on(events.NewMessage(pattern='/extract'))
 async def extract(event):
     user_id = event.chat_id
-    file_name = event.raw_text.split()[1:]
+    file_name = event.raw_text.split()[1]
     extracted_folder = await extract_archive(file_name, user_id)
     await event.respond(f'Extracted to {extracted_folder}!')
     raise events.StopPropagation
