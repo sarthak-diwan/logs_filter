@@ -77,6 +77,26 @@ async def show_progress(event):
         await event.respond('No active downloads.')
     raise events.StopPropagation
 
+# Define a handler function for /extract command
+@bot.on(events.NewMessage(pattern='/extract'))
+async def extract(event):
+    user_id = event.chat_id
+    file_name = event.raw_text.split()[1:]
+    extracted_folder = await extract_archive(file_name, user_id)
+    await event.respond(f'Extracted to {extracted_folder}!')
+    raise events.StopPropagation
+
+# Define a handler function for /extract command
+@bot.on(events.NewMessage(pattern='/insert'))
+async def insert(event):
+    user_id = event.chat_id
+    if user_id in progress_data:
+        progress_message = progress_data[user_id]['progress']
+        await event.respond(progress_message)
+    else:
+        await event.respond('No active downloads.')
+    raise events.StopPropagation
+
 @bot.on(events.NewMessage(func=lambda e: e.document))
 async def download_file(event):
     user_id = event.chat_id
